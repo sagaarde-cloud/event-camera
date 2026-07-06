@@ -46,21 +46,16 @@ export default function CameraPage() {
     startCamera(newMode);
   }
 
-  function getFilterStyle() {
+  function getVideoFilter() {
     if (filter === "vintage") return "sepia(0.6) contrast(1.1)";
     if (filter === "bw") return "grayscale(1)";
     return "none";
   }
 
-  function applyCanvasFilter(ctx: CanvasRenderingContext2D) {
-    // 🔥 vigtig: canvas filter skal sættes HER (ikke CSS)
-    if (filter === "vintage") {
-      ctx.filter = "sepia(0.6) contrast(1.1)";
-    } else if (filter === "bw") {
-      ctx.filter = "grayscale(1)";
-    } else {
-      ctx.filter = "none";
-    }
+  function getCanvasFilter(ctx: CanvasRenderingContext2D) {
+    if (filter === "vintage") ctx.filter = "sepia(0.6) contrast(1.1)";
+    else if (filter === "bw") ctx.filter = "grayscale(1)";
+    else ctx.filter = "none";
   }
 
   function takePhoto() {
@@ -69,13 +64,18 @@ export default function CameraPage() {
 
     if (!video || !canvas) return;
 
+    if (video.videoWidth === 0 || video.videoHeight === 0) {
+      alert("Kamera er ikke klar endnu - prøv igen");
+      return;
+    }
+
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
 
-    applyCanvasFilter(ctx);
+    getCanvasFilter(ctx);
 
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
@@ -112,19 +112,14 @@ export default function CameraPage() {
         <video
           ref={videoRef}
           className="video"
-          style={{ filter: getFilterStyle() }}
+          style={{ filter: getVideoFilter() }}
         />
+
         <canvas ref={canvasRef} className="hidden" />
       </div>
 
-      {photo && (
-        <img
-          src={photo}
-          className="preview"
-          alt="preview"
-          style={{ filter: getFilterStyle() }}
-        />
-      )}
+      {/* preview = RAW billede (ingen filter) */}
+      {photo && <img src={photo} className="preview" alt="preview" />}
 
       <div className="buttons">
         <button onClick={() => startCamera()}>Start</button>

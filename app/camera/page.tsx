@@ -16,8 +16,9 @@ export default function CameraPage() {
     try {
       setError(null);
 
+      // stop old stream
       if (stream) {
-        stream.getTracks().forEach((t) => t.stop());
+        stream.getTracks().forEach((track) => track.stop());
       }
 
       const newStream = await navigator.mediaDevices.getUserMedia({
@@ -33,14 +34,15 @@ export default function CameraPage() {
       setStream(newStream);
       setFacingMode(mode);
     } catch (err: any) {
-      setError(err?.message || "Kamera fejl");
+      console.error(err);
+      setError(err?.message || "Kunne ikke starte kamera");
     }
   }
 
   // ⏹ STOP CAMERA
   function stopCamera() {
     if (stream) {
-      stream.getTracks().forEach((t) => t.stop());
+      stream.getTracks().forEach((track) => track.stop());
       setStream(null);
     }
   }
@@ -64,83 +66,110 @@ export default function CameraPage() {
     setPhoto(image);
   }
 
-  // 📤 UPLOAD (placeholder nu)
+  // 📤 UPLOAD (placeholder)
   async function uploadPhoto() {
     if (!photo) return;
 
-    console.log("Uploading to event...", photo);
-
-    alert("📤 Upload klar (placeholder) - vi bygger backend næste step!");
+    alert("📤 Upload klar (backend kommer næste step)");
   }
 
   return (
-    <main style={{ padding: 20, fontFamily: "sans-serif" }}>
-      <h1 style={{ fontSize: 24 }}>📸 Event Camera</h1>
+    <main className="min-h-screen bg-black text-white flex flex-col items-center p-4">
 
-      {/* Buttons */}
-      <div style={{ display: "flex", gap: 10, marginTop: 10 }}>
-        <button onClick={() => startCamera("environment")}>
+      {/* HEADER */}
+      <h1 className="text-2xl font-bold mt-4">
+        📸 Event Camera
+      </h1>
+
+      <p className="text-gray-400 text-sm mt-1">
+        Tag billeder til dit event
+      </p>
+
+      {/* BUTTONS */}
+      <div className="flex flex-wrap gap-3 mt-6 justify-center">
+
+        <button
+          onClick={() => startCamera("environment")}
+          className="px-4 py-2 bg-white text-black rounded-xl font-medium"
+        >
           Start kamera
         </button>
 
-        <button onClick={() => startCamera("user")}>
+        <button
+          onClick={() => startCamera("user")}
+          className="px-4 py-2 bg-gray-800 rounded-xl"
+        >
           Front
         </button>
 
-        <button onClick={takePhoto} disabled={!stream}>
+        <button
+          onClick={takePhoto}
+          disabled={!stream}
+          className="px-4 py-2 bg-blue-600 rounded-xl disabled:opacity-40"
+        >
           📸 Tag billede
         </button>
 
-        <button onClick={stopCamera} disabled={!stream}>
+        <button
+          onClick={stopCamera}
+          disabled={!stream}
+          className="px-4 py-2 bg-red-600 rounded-xl disabled:opacity-40"
+        >
           ⏹ Stop
         </button>
       </div>
 
-      {/* Video */}
-      <div style={{ marginTop: 20 }}>
+      {/* CAMERA */}
+      <div className="mt-6 w-full max-w-md rounded-2xl overflow-hidden border border-gray-800 bg-black">
         <video
           ref={videoRef}
           autoPlay
           playsInline
           muted
-          style={{
-            width: "100%",
-            borderRadius: 12,
-            background: "#000",
-          }}
+          className="w-full"
         />
       </div>
 
-      {/* Hidden canvas */}
-      <canvas ref={canvasRef} style={{ display: "none" }} />
+      {/* HIDDEN CANVAS */}
+      <canvas ref={canvasRef} className="hidden" />
 
-      {/* Photo preview */}
+      {/* PHOTO PREVIEW */}
       {photo && (
-        <div style={{ marginTop: 20 }}>
-          <h3>📷 Preview</h3>
+        <div className="mt-6 w-full max-w-md bg-gray-900 rounded-2xl p-3">
+
+          <p className="text-sm text-gray-400 mb-2">
+            Preview
+          </p>
+
           <img
             src={photo}
-            style={{
-              width: "100%",
-              borderRadius: 12,
-            }}
+            className="rounded-xl w-full"
           />
 
-          <div style={{ display: "flex", gap: 10, marginTop: 10 }}>
-            <button onClick={uploadPhoto}>
-              📤 Upload til event
+          <div className="flex gap-3 mt-3">
+
+            <button
+              onClick={uploadPhoto}
+              className="flex-1 bg-green-600 py-2 rounded-xl"
+            >
+              Upload
             </button>
 
-            <button onClick={() => setPhoto(null)}>
-              🗑 Slet
+            <button
+              onClick={() => setPhoto(null)}
+              className="flex-1 bg-gray-700 py-2 rounded-xl"
+            >
+              Slet
             </button>
           </div>
         </div>
       )}
 
-      {/* Error */}
+      {/* ERROR */}
       {error && (
-        <p style={{ color: "red" }}>❌ {error}</p>
+        <p className="text-red-500 mt-4 text-sm">
+          ❌ {error}
+        </p>
       )}
     </main>
   );

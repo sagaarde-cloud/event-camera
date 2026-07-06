@@ -2,6 +2,8 @@
 
 import { useRef, useState } from "react";
 
+type Filter = "normal" | "vintage" | "bw";
+
 export default function CameraPage() {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -9,12 +11,15 @@ export default function CameraPage() {
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [photo, setPhoto] = useState<string | null>(null);
   const [facingMode, setFacingMode] = useState<"user" | "environment">("environment");
+  const [filter, setFilter] = useState<Filter>("normal");
   const [error, setError] = useState<string | null>(null);
 
+  // 🎥 START / SWITCH CAMERA (FIXED)
   async function startCamera(mode: "user" | "environment") {
     try {
       setError(null);
 
+      // stop old stream properly
       if (stream) {
         stream.getTracks().forEach((t) => t.stop());
       }
@@ -43,6 +48,7 @@ export default function CameraPage() {
     }
   }
 
+  // 📸 PHOTO + FILTER
   function takePhoto() {
     if (!videoRef.current || !canvasRef.current) return;
 
@@ -57,68 +63,102 @@ export default function CameraPage() {
 
     ctx.drawImage(video, 0, 0);
 
-    const img = canvas.toDataURL("image/png");
+    let img = canvas.toDataURL("image/png");
+
+    // simple filter overlay (frontend fake filter)
+    if (filter === "bw") {
+      img = applyFakeOverlay(img, "bw");
+    }
+    if (filter === "vintage") {
+      img = applyFakeOverlay(img, "vintage");
+    }
+
     setPhoto(img);
+  }
+
+  // 🎞 SIMPLE FILTER SIMULATION (frontend trick)
+  function applyFakeOverlay(img: string, type: string) {
+    // NOTE: real filters kan bygges senere med canvas shaders
+    return img;
   }
 
   async function uploadPhoto() {
     if (!photo) return;
-    alert("Upload placeholder — backend kommer næste step");
+    alert("Upload klar (kommer næste step)");
   }
 
   return (
     <main style={styles.page}>
       
-      {/* HEADER */}
-      <div style={styles.header}>
-        <h1 style={styles.title}>Event Camera</h1>
-        <p style={styles.subtitle}>Capture memories from your event</p>
+      {/* POLAROID FRAME */}
+      <div style={styles.polaroid}>
+        
+        <div style={styles.cameraFrame}>
+          <video
+            ref={videoRef}
+            autoPlay
+            playsInline
+            muted
+            style={{
+              ...styles.video,
+              filter:
+                filter === "bw"
+                  ? "grayscale(1)"
+                  : filter === "vintage"
+                  ? "sepia(0.6) contrast(1.1)"
+                  : "none",
+            }}
+          />
+        </div>
+
+        <div style={styles.caption}>
+          Event Camera
+        </div>
       </div>
 
-      {/* CAMERA CARD */}
-      <div style={styles.card}>
-        <video
-          ref={videoRef}
-          autoPlay
-          playsInline
-          muted
-          style={styles.video}
-        />
-      </div>
-
-      {/* ACTION BAR */}
-      <div style={styles.actions}>
-        <button style={styles.primaryBtn} onClick={() => startCamera("environment")}>
+      {/* CONTROLS */}
+      <div style={styles.controls}>
+        
+        <button onClick={() => startCamera("environment")} style={styles.btn}>
           Start
         </button>
 
-        <button style={styles.secondaryBtn} onClick={() => startCamera("user")}>
+        <button onClick={() => startCamera(facingMode === "user" ? "environment" : "user")} style={styles.btn}>
           Flip
         </button>
 
-        <button style={styles.captureBtn} onClick={takePhoto} disabled={!stream}>
+        <button onClick={takePhoto} disabled={!stream} style={styles.capture}>
           Capture
         </button>
 
-        <button style={styles.dangerBtn} onClick={stopCamera} disabled={!stream}>
+        <button onClick={stopCamera} disabled={!stream} style={styles.stop}>
           Stop
         </button>
       </div>
 
-      {/* PHOTO PREVIEW */}
+      {/* FILTERS */}
+      <div style={styles.filters}>
+        <button onClick={() => setFilter("normal")} style={styles.filterBtn}>
+          Normal
+        </button>
+
+        <button onClick={() => setFilter("vintage")} style={styles.filterBtn}>
+          Vintage
+        </button>
+
+        <button onClick={() => setFilter("bw")} style={styles.filterBtn}>
+          B&W
+        </button>
+      </div>
+
+      {/* PHOTO */}
       {photo && (
-        <div style={styles.previewCard}>
-          <img src={photo} style={styles.previewImg} />
+        <div style={styles.preview}>
+          <img src={photo} style={{ width: "100%", borderRadius: 12 }} />
 
-          <div style={styles.previewActions}>
-            <button style={styles.uploadBtn} onClick={uploadPhoto}>
-              Upload
-            </button>
-
-            <button style={styles.deleteBtn} onClick={() => setPhoto(null)}>
-              Delete
-            </button>
-          </div>
+          <button onClick={uploadPhoto} style={styles.upload}>
+            Upload
+          </button>
         </div>
       )}
 
@@ -130,47 +170,33 @@ export default function CameraPage() {
   );
 }
 
-/* 🎨 VINTAGE / CUTE DESIGN SYSTEM */
+/* 🎨 POLAROID STYLE */
 const styles: any = {
   page: {
     minHeight: "100vh",
-    background: "linear-gradient(180deg, #f7f1ea, #f2e6df)",
-    padding: 20,
+    background: "#f4efe7",
     display: "flex",
     flexDirection: "column",
     alignItems: "center",
+    padding: 20,
     fontFamily: "system-ui",
-    color: "#2b2b2b",
   },
 
-  header: {
-    textAlign: "center",
-    marginTop: 20,
-    marginBottom: 20,
-  },
-
-  title: {
-    fontSize: 26,
-    letterSpacing: 1,
-    margin: 0,
-    fontWeight: 600,
-  },
-
-  subtitle: {
-    fontSize: 14,
-    opacity: 0.6,
-    marginTop: 6,
-  },
-
-  card: {
+  polaroid: {
+    background: "white",
+    padding: 12,
+    paddingBottom: 40,
+    borderRadius: 6,
+    boxShadow: "0 10px 30px rgba(0,0,0,0.15)",
     width: "100%",
-    maxWidth: 420,
-    borderRadius: 24,
+    maxWidth: 360,
+    marginTop: 20,
+  },
+
+  cameraFrame: {
+    background: "#000",
+    borderRadius: 4,
     overflow: "hidden",
-    background: "rgba(255,255,255,0.6)",
-    backdropFilter: "blur(10px)",
-    border: "1px solid rgba(0,0,0,0.05)",
-    boxShadow: "0 10px 30px rgba(0,0,0,0.08)",
   },
 
   video: {
@@ -178,88 +204,76 @@ const styles: any = {
     display: "block",
   },
 
-  actions: {
+  caption: {
+    textAlign: "center",
+    marginTop: 10,
+    fontSize: 14,
+    color: "#333",
+    letterSpacing: 1,
+  },
+
+  controls: {
     display: "flex",
     gap: 10,
+    marginTop: 20,
     flexWrap: "wrap",
     justifyContent: "center",
-    marginTop: 18,
   },
 
-  primaryBtn: {
-    padding: "10px 16px",
+  btn: {
+    padding: "10px 14px",
     borderRadius: 999,
-    border: "none",
-    background: "#2f2f2f",
-    color: "white",
+    border: "1px solid #ddd",
+    background: "white",
   },
 
-  secondaryBtn: {
-    padding: "10px 16px",
+  capture: {
+    padding: "10px 14px",
     borderRadius: 999,
-    border: "1px solid #cbb9ad",
-    background: "transparent",
-    color: "#2f2f2f",
-  },
-
-  captureBtn: {
-    padding: "10px 16px",
-    borderRadius: 999,
-    border: "none",
     background: "#c97c5d",
     color: "white",
+    border: "none",
   },
 
-  dangerBtn: {
-    padding: "10px 16px",
+  stop: {
+    padding: "10px 14px",
     borderRadius: 999,
-    border: "none",
     background: "#b23a48",
     color: "white",
-  },
-
-  previewCard: {
-    marginTop: 20,
-    width: "100%",
-    maxWidth: 420,
-    borderRadius: 24,
-    overflow: "hidden",
-    background: "rgba(255,255,255,0.7)",
-    border: "1px solid rgba(0,0,0,0.05)",
-  },
-
-  previewImg: {
-    width: "100%",
-    display: "block",
-  },
-
-  previewActions: {
-    display: "flex",
-    justifyContent: "space-between",
-    padding: 10,
-    gap: 10,
-  },
-
-  uploadBtn: {
-    flex: 1,
-    padding: 10,
-    borderRadius: 12,
-    background: "#4a7c59",
-    color: "white",
     border: "none",
   },
 
-  deleteBtn: {
-    flex: 1,
+  filters: {
+    display: "flex",
+    gap: 10,
+    marginTop: 15,
+  },
+
+  filterBtn: {
+    padding: "8px 12px",
+    borderRadius: 999,
+    border: "1px solid #ccc",
+    background: "white",
+  },
+
+  preview: {
+    marginTop: 20,
+    width: "100%",
+    maxWidth: 360,
+  },
+
+  upload: {
+    marginTop: 10,
+    width: "100%",
     padding: 10,
-    borderRadius: 12,
-    background: "#e9d8c3",
+    background: "#4a7c59",
+    color: "white",
+    borderRadius: 10,
     border: "none",
   },
 
   error: {
-    color: "#b23a48",
+    color: "red",
     marginTop: 10,
-    fontSize: 14,
   },
 };

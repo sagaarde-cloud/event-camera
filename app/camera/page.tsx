@@ -46,16 +46,10 @@ export default function CameraPage() {
     startCamera(newMode);
   }
 
-  function getVideoFilter() {
+  function getFilter() {
     if (filter === "vintage") return "sepia(0.6) contrast(1.1)";
     if (filter === "bw") return "grayscale(1)";
     return "none";
-  }
-
-  function getCanvasFilter(ctx: CanvasRenderingContext2D) {
-    if (filter === "vintage") ctx.filter = "sepia(0.6) contrast(1.1)";
-    else if (filter === "bw") ctx.filter = "grayscale(1)";
-    else ctx.filter = "none";
   }
 
   function takePhoto() {
@@ -64,18 +58,16 @@ export default function CameraPage() {
 
     if (!video || !canvas) return;
 
-    if (video.videoWidth === 0 || video.videoHeight === 0) {
-      alert("Kamera er ikke klar endnu - prøv igen");
-      return;
-    }
-
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
 
-    getCanvasFilter(ctx);
+    // 🔥 filter brændes ind i billedet
+    if (filter === "vintage") ctx.filter = "sepia(0.6) contrast(1.1)";
+    else if (filter === "bw") ctx.filter = "grayscale(1)";
+    else ctx.filter = "none";
 
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
@@ -112,14 +104,17 @@ export default function CameraPage() {
         <video
           ref={videoRef}
           className="video"
-          style={{ filter: getVideoFilter() }}
+          style={{ filter: getFilter() }}
         />
-
         <canvas ref={canvasRef} className="hidden" />
       </div>
 
-      {/* preview = RAW billede (ingen filter) */}
-      {photo && <img src={photo} className="preview" alt="preview" />}
+      {/* 🔥 PREVIEW WRAPPER DER “LIGNER FILTER” */}
+      {photo && (
+        <div className="previewWrap" style={{ filter: getFilter() }}>
+          <img src={photo} className="preview" alt="preview" />
+        </div>
+      )}
 
       <div className="buttons">
         <button onClick={() => startCamera()}>Start</button>
@@ -161,10 +156,16 @@ export default function CameraPage() {
           object-fit: cover;
         }
 
-        .preview {
+        .previewWrap {
           width: 160px;
           border-radius: 12px;
+          overflow: hidden;
           border: 3px solid #d8cfc4;
+        }
+
+        .preview {
+          width: 100%;
+          display: block;
         }
 
         button {

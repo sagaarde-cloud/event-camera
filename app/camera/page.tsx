@@ -46,6 +46,12 @@ export default function CameraPage() {
     startCamera(newMode);
   }
 
+  function getFilter() {
+    if (filter === "vintage") return "sepia(0.6) contrast(1.1)";
+    if (filter === "bw") return "grayscale(1)";
+    return "none";
+  }
+
   function takePhoto() {
     const video = videoRef.current;
     const canvas = canvasRef.current;
@@ -58,15 +64,9 @@ export default function CameraPage() {
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
 
-    // 🎨 FILTER BRÆNDES IND I BILLEDET
-    if (filter === "vintage") {
-      ctx.filter = "sepia(0.6) contrast(1.1)";
-    } else if (filter === "bw") {
-      ctx.filter = "grayscale(1)";
-    } else {
-      ctx.filter = "none";
-    }
+    const currentFilter = getFilter();
 
+    ctx.filter = currentFilter;
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
     const image = canvas.toDataURL("image/png");
@@ -96,24 +96,26 @@ export default function CameraPage() {
     }
   }
 
-  function getFilterStyle() {
-    if (filter === "vintage") return "sepia(0.6) contrast(1.1)";
-    if (filter === "bw") return "grayscale(1)";
-    return "none";
-  }
-
   return (
     <div className="wrap">
       <div className="camera">
         <video
           ref={videoRef}
           className="video"
-          style={{ filter: getFilterStyle() }}
+          style={{ filter: getFilter() }}
         />
+
         <canvas ref={canvasRef} className="hidden" />
       </div>
 
-      {photo && <img src={photo} className="preview" alt="preview" />}
+      {photo && (
+        <img
+          src={photo}
+          className="preview"
+          alt="preview"
+          style={{ filter: getFilter() }}
+        />
+      )}
 
       <div className="buttons">
         <button onClick={() => startCamera()}>Start</button>

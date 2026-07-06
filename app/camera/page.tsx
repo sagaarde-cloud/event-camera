@@ -14,15 +14,11 @@ export default function CameraPage() {
   const [filter, setFilter] = useState<Filter>("normal");
   const [error, setError] = useState<string | null>(null);
 
-  // 🎥 START / SWITCH CAMERA (FIXED)
   async function startCamera(mode: "user" | "environment") {
     try {
       setError(null);
 
-      // stop old stream properly
-      if (stream) {
-        stream.getTracks().forEach((t) => t.stop());
-      }
+      if (stream) stream.getTracks().forEach((t) => t.stop());
 
       const newStream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: mode },
@@ -42,13 +38,10 @@ export default function CameraPage() {
   }
 
   function stopCamera() {
-    if (stream) {
-      stream.getTracks().forEach((t) => t.stop());
-      setStream(null);
-    }
+    if (stream) stream.getTracks().forEach((t) => t.stop());
+    setStream(null);
   }
 
-  // 📸 PHOTO + FILTER
   function takePhoto() {
     if (!videoRef.current || !canvasRef.current) return;
 
@@ -63,217 +56,116 @@ export default function CameraPage() {
 
     ctx.drawImage(video, 0, 0);
 
-    let img = canvas.toDataURL("image/png");
-
-    // simple filter overlay (frontend fake filter)
-    if (filter === "bw") {
-      img = applyFakeOverlay(img, "bw");
-    }
-    if (filter === "vintage") {
-      img = applyFakeOverlay(img, "vintage");
-    }
-
+    const img = canvas.toDataURL("image/png");
     setPhoto(img);
-  }
-
-  // 🎞 SIMPLE FILTER SIMULATION (frontend trick)
-  function applyFakeOverlay(img: string, type: string) {
-    // NOTE: real filters kan bygges senere med canvas shaders
-    return img;
   }
 
   async function uploadPhoto() {
     if (!photo) return;
-    alert("Upload klar (kommer næste step)");
+    alert("Upload coming next step");
   }
 
   return (
-    <main style={styles.page}>
-      
-      {/* POLAROID FRAME */}
-      <div style={styles.polaroid}>
+    <main className="min-h-screen bg-[#f6f1ea] flex flex-col items-center px-6 py-10">
+
+      {/* TOP BAR */}
+      <div className="text-center mb-8">
+        <h1 className="text-xl tracking-[0.3em] uppercase text-[#2b2b2b]">
+          Event Camera
+        </h1>
+        <p className="text-sm text-[#7a746d] mt-2">
+          Capture moments in a soft vintage style
+        </p>
+      </div>
+
+      {/* CAMERA FRAME (MAIN FOCUS) */}
+      <div className="w-full max-w-sm bg-white shadow-[0_20px_60px_rgba(0,0,0,0.12)] rounded-[28px] p-4">
         
-        <div style={styles.cameraFrame}>
+        <div className="rounded-[20px] overflow-hidden bg-black aspect-[3/4]">
           <video
             ref={videoRef}
             autoPlay
             playsInline
             muted
-            style={{
-              ...styles.video,
-              filter:
-                filter === "bw"
-                  ? "grayscale(1)"
-                  : filter === "vintage"
-                  ? "sepia(0.6) contrast(1.1)"
-                  : "none",
-            }}
+            className={`w-full h-full object-cover ${
+              filter === "bw"
+                ? "grayscale"
+                : filter === "vintage"
+                ? "sepia-[0.6] contrast-110"
+                : ""
+            }`}
           />
         </div>
 
-        <div style={styles.caption}>
-          Event Camera
+        {/* FILTERS */}
+        <div className="flex justify-between mt-4 text-xs text-[#7a746d]">
+          <button onClick={() => setFilter("normal")}>Normal</button>
+          <button onClick={() => setFilter("vintage")}>Vintage</button>
+          <button onClick={() => setFilter("bw")}>B&W</button>
+        </div>
+
+        {/* ACTIONS */}
+        <div className="grid grid-cols-2 gap-3 mt-5">
+          
+          <button
+            onClick={() => startCamera("environment")}
+            className="py-3 rounded-xl bg-[#2b2b2b] text-white text-sm"
+          >
+            Start
+          </button>
+
+          <button
+            onClick={() =>
+              startCamera(facingMode === "user" ? "environment" : "user")
+            }
+            className="py-3 rounded-xl border border-[#d6c8bb] text-sm"
+          >
+            Flip
+          </button>
+
+          <button
+            onClick={takePhoto}
+            disabled={!stream}
+            className="py-3 rounded-xl bg-[#c97c5d] text-white text-sm col-span-2 disabled:opacity-40"
+          >
+            Capture Photo
+          </button>
+
+          <button
+            onClick={stopCamera}
+            disabled={!stream}
+            className="py-2 rounded-xl text-sm text-[#7a746d] col-span-2"
+          >
+            Stop camera
+          </button>
         </div>
       </div>
 
-      {/* CONTROLS */}
-      <div style={styles.controls}>
-        
-        <button onClick={() => startCamera("environment")} style={styles.btn}>
-          Start
-        </button>
-
-        <button onClick={() => startCamera(facingMode === "user" ? "environment" : "user")} style={styles.btn}>
-          Flip
-        </button>
-
-        <button onClick={takePhoto} disabled={!stream} style={styles.capture}>
-          Capture
-        </button>
-
-        <button onClick={stopCamera} disabled={!stream} style={styles.stop}>
-          Stop
-        </button>
-      </div>
-
-      {/* FILTERS */}
-      <div style={styles.filters}>
-        <button onClick={() => setFilter("normal")} style={styles.filterBtn}>
-          Normal
-        </button>
-
-        <button onClick={() => setFilter("vintage")} style={styles.filterBtn}>
-          Vintage
-        </button>
-
-        <button onClick={() => setFilter("bw")} style={styles.filterBtn}>
-          B&W
-        </button>
-      </div>
-
-      {/* PHOTO */}
+      {/* PREVIEW */}
       {photo && (
-        <div style={styles.preview}>
-          <img src={photo} style={{ width: "100%", borderRadius: 12 }} />
+        <div className="w-full max-w-sm mt-8 bg-white rounded-[24px] shadow-md p-4">
+          
+          <p className="text-xs tracking-widest uppercase text-[#7a746d] mb-3">
+            Preview
+          </p>
 
-          <button onClick={uploadPhoto} style={styles.upload}>
+          <img src={photo} className="rounded-[16px]" />
+
+          <button
+            onClick={uploadPhoto}
+            className="w-full mt-4 py-3 rounded-xl bg-[#4a7c59] text-white text-sm"
+          >
             Upload
           </button>
         </div>
       )}
 
       {/* ERROR */}
-      {error && <p style={styles.error}>{error}</p>}
+      {error && (
+        <p className="text-red-500 text-sm mt-6">{error}</p>
+      )}
 
-      <canvas ref={canvasRef} style={{ display: "none" }} />
+      <canvas ref={canvasRef} className="hidden" />
     </main>
   );
 }
-
-/* 🎨 POLAROID STYLE */
-const styles: any = {
-  page: {
-    minHeight: "100vh",
-    background: "#f4efe7",
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-    padding: 20,
-    fontFamily: "system-ui",
-  },
-
-  polaroid: {
-    background: "white",
-    padding: 12,
-    paddingBottom: 40,
-    borderRadius: 6,
-    boxShadow: "0 10px 30px rgba(0,0,0,0.15)",
-    width: "100%",
-    maxWidth: 360,
-    marginTop: 20,
-  },
-
-  cameraFrame: {
-    background: "#000",
-    borderRadius: 4,
-    overflow: "hidden",
-  },
-
-  video: {
-    width: "100%",
-    display: "block",
-  },
-
-  caption: {
-    textAlign: "center",
-    marginTop: 10,
-    fontSize: 14,
-    color: "#333",
-    letterSpacing: 1,
-  },
-
-  controls: {
-    display: "flex",
-    gap: 10,
-    marginTop: 20,
-    flexWrap: "wrap",
-    justifyContent: "center",
-  },
-
-  btn: {
-    padding: "10px 14px",
-    borderRadius: 999,
-    border: "1px solid #ddd",
-    background: "white",
-  },
-
-  capture: {
-    padding: "10px 14px",
-    borderRadius: 999,
-    background: "#c97c5d",
-    color: "white",
-    border: "none",
-  },
-
-  stop: {
-    padding: "10px 14px",
-    borderRadius: 999,
-    background: "#b23a48",
-    color: "white",
-    border: "none",
-  },
-
-  filters: {
-    display: "flex",
-    gap: 10,
-    marginTop: 15,
-  },
-
-  filterBtn: {
-    padding: "8px 12px",
-    borderRadius: 999,
-    border: "1px solid #ccc",
-    background: "white",
-  },
-
-  preview: {
-    marginTop: 20,
-    width: "100%",
-    maxWidth: 360,
-  },
-
-  upload: {
-    marginTop: 10,
-    width: "100%",
-    padding: 10,
-    background: "#4a7c59",
-    color: "white",
-    borderRadius: 10,
-    border: "none",
-  },
-
-  error: {
-    color: "red",
-    marginTop: 10,
-  },
-};

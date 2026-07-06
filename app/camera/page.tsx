@@ -19,9 +19,7 @@ export default function CameraPage() {
 
   async function startCamera(mode: "user" | "environment" = facingMode) {
     try {
-      if (stream) {
-        stream.getTracks().forEach((t) => t.stop());
-      }
+      if (stream) stream.getTracks().forEach((t) => t.stop());
 
       const newStream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: mode },
@@ -64,7 +62,6 @@ export default function CameraPage() {
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
 
-    // 🔥 filter brændes ind i billedet
     if (filter === "vintage") ctx.filter = "sepia(0.6) contrast(1.1)";
     else if (filter === "bw") ctx.filter = "grayscale(1)";
     else ctx.filter = "none";
@@ -78,24 +75,23 @@ export default function CameraPage() {
   async function uploadPhoto() {
     if (!photo) return;
 
-    try {
-      const fileName = `event-${Date.now()}.png`;
+    const fileName = `event-${Date.now()}.png`;
 
-      const res = await fetch(photo);
-      const blob = await res.blob();
+    const res = await fetch(photo);
+    const blob = await res.blob();
 
-      const { error } = await supabase.storage
-        .from("events")
-        .upload(fileName, blob);
+    const { error } = await supabase.storage
+      .from("events")
+      .upload(fileName, blob);
 
-      if (error) throw error;
-
-      alert("Upload successful 🚀");
-      setPhoto(null);
-    } catch (err) {
-      console.error(err);
+    if (error) {
+      console.error(error);
       alert("Upload failed");
+      return;
     }
+
+    alert("Upload successful 🚀");
+    setPhoto(null);
   }
 
   return (
@@ -109,10 +105,10 @@ export default function CameraPage() {
         <canvas ref={canvasRef} className="hidden" />
       </div>
 
-      {/* 🔥 PREVIEW WRAPPER DER “LIGNER FILTER” */}
+      {/* 🔥 REAL FIX: filter applied to wrapper (NOT img) */}
       {photo && (
         <div className="previewWrap" style={{ filter: getFilter() }}>
-          <img src={photo} className="preview" alt="preview" />
+          <img src={photo} className="preview" />
         </div>
       )}
 
@@ -138,7 +134,6 @@ export default function CameraPage() {
           padding: 20px;
           background: #f7f3ee;
           min-height: 100vh;
-          font-family: sans-serif;
         }
 
         .camera {
@@ -175,11 +170,6 @@ export default function CameraPage() {
           border: none;
           background: #cbbba0;
           color: white;
-          cursor: pointer;
-        }
-
-        button:hover {
-          background: #b8a48b;
         }
 
         .filters {

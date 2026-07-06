@@ -4,51 +4,54 @@ import { useRef, useState } from "react";
 
 export default function CameraPage() {
   const videoRef = useRef<HTMLVideoElement | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [started, setStarted] = useState(false);
 
-  async function startCamera() {
+  const [stream, setStream] = useState<MediaStream | null>(null);
+  const [facingMode, setFacingMode] = useState<"user" | "environment">("environment");
+  const [error, setError] = useState<string | null>(null);
+
+  async function startCamera(mode: "user" | "environment") {
     try {
       setError(null);
 
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: "user" },
+      // stop gammel stream
+      if (stream) {
+        stream.getTracks().forEach((track) => track.stop());
+      }
+
+      const newStream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: mode },
         audio: false,
       });
 
       if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-
+        videoRef.current.srcObject = newStream;
         await videoRef.current.play();
-        setStarted(true);
       }
+
+      setStream(newStream);
+      setFacingMode(mode);
     } catch (err: any) {
       console.error(err);
-      setError(err?.message || "Ukendt kamera fejl");
+      setError(err?.message || "Kamera fejl");
     }
   }
 
   return (
     <main style={{ padding: 20 }}>
-      <h1>📸 Camera</h1>
+      <h1>📸 Kamera</h1>
 
-      <button
-        onClick={startCamera}
-        style={{
-          padding: 12,
-          background: "black",
-          color: "white",
-          borderRadius: 8,
-          marginTop: 10,
-        }}
-      >
-        Start kamera
-      </button>
+      <div style={{ display: "flex", gap: 10, marginTop: 10 }}>
+        <button onClick={() => startCamera("user")}>
+          Front kamera
+        </button>
+
+        <button onClick={() => startCamera("environment")}>
+          Bag kamera
+        </button>
+      </div>
 
       {error && (
-        <p style={{ color: "red", marginTop: 10 }}>
-          ❌ {error}
-        </p>
+        <p style={{ color: "red" }}>❌ {error}</p>
       )}
 
       <video
@@ -64,9 +67,9 @@ export default function CameraPage() {
         }}
       />
 
-      {started && (
-        <p style={{ marginTop: 10 }}>✅ Kamera kører</p>
-      )}
+      <p style={{ marginTop: 10 }}>
+        Aktiv: {facingMode === "user" ? "Front" : "Bag"}
+      </p>
     </main>
   );
 }

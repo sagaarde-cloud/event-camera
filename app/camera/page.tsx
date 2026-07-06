@@ -58,6 +58,15 @@ export default function CameraPage() {
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
 
+    // 🎨 FILTER BRÆNDES IND I BILLEDET
+    if (filter === "vintage") {
+      ctx.filter = "sepia(0.6) contrast(1.1)";
+    } else if (filter === "bw") {
+      ctx.filter = "grayscale(1)";
+    } else {
+      ctx.filter = "none";
+    }
+
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
     const image = canvas.toDataURL("image/png");
@@ -87,29 +96,26 @@ export default function CameraPage() {
     }
   }
 
-  function getFilterClass() {
+  function getFilterStyle() {
     if (filter === "vintage") return "sepia(0.6) contrast(1.1)";
     if (filter === "bw") return "grayscale(1)";
     return "none";
   }
 
   return (
-    <div className="camera-wrap">
-      <div className="camera-frame">
+    <div className="wrap">
+      <div className="camera">
         <video
           ref={videoRef}
           className="video"
-          style={{ filter: getFilterClass() }}
+          style={{ filter: getFilterStyle() }}
         />
-
         <canvas ref={canvasRef} className="hidden" />
       </div>
 
-      {photo && (
-        <img src={photo} className="preview" alt="preview" />
-      )}
+      {photo && <img src={photo} className="preview" alt="preview" />}
 
-      <div className="controls">
+      <div className="buttons">
         <button onClick={() => startCamera()}>Start</button>
         <button onClick={flipCamera}>Flip</button>
         <button onClick={takePhoto}>Tag billede</button>
@@ -123,7 +129,7 @@ export default function CameraPage() {
       </div>
 
       <style jsx>{`
-        .camera-wrap {
+        .wrap {
           display: flex;
           flex-direction: column;
           align-items: center;
@@ -134,13 +140,13 @@ export default function CameraPage() {
           font-family: sans-serif;
         }
 
-        .camera-frame {
+        .camera {
           width: 320px;
           height: 420px;
           border-radius: 20px;
           overflow: hidden;
           border: 8px solid #d8cfc4;
-          background: #000;
+          background: black;
         }
 
         .video {
@@ -155,28 +161,26 @@ export default function CameraPage() {
           border: 3px solid #d8cfc4;
         }
 
-        .controls button,
-        .filters button {
+        button {
           margin: 4px;
           padding: 10px 14px;
           border-radius: 10px;
           border: none;
           background: #cbbba0;
-          color: #fff;
+          color: white;
           cursor: pointer;
         }
 
-        .controls button:hover,
-        .filters button:hover {
+        button:hover {
           background: #b8a48b;
-        }
-
-        .hidden {
-          display: none;
         }
 
         .filters {
           margin-top: 10px;
+        }
+
+        .hidden {
+          display: none;
         }
       `}</style>
     </div>

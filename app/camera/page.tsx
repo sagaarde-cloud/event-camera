@@ -11,14 +11,12 @@ export default function CameraPage() {
   const [facingMode, setFacingMode] = useState<"user" | "environment">("environment");
   const [error, setError] = useState<string | null>(null);
 
-  // 🎥 START CAMERA
   async function startCamera(mode: "user" | "environment") {
     try {
       setError(null);
 
-      // stop old stream
       if (stream) {
-        stream.getTracks().forEach((track) => track.stop());
+        stream.getTracks().forEach((t) => t.stop());
       }
 
       const newStream = await navigator.mediaDevices.getUserMedia({
@@ -34,20 +32,17 @@ export default function CameraPage() {
       setStream(newStream);
       setFacingMode(mode);
     } catch (err: any) {
-      console.error(err);
-      setError(err?.message || "Kunne ikke starte kamera");
+      setError(err?.message || "Camera error");
     }
   }
 
-  // ⏹ STOP CAMERA
   function stopCamera() {
     if (stream) {
-      stream.getTracks().forEach((track) => track.stop());
+      stream.getTracks().forEach((t) => t.stop());
       setStream(null);
     }
   }
 
-  // 📸 TAKE PHOTO
   function takePhoto() {
     if (!videoRef.current || !canvasRef.current) return;
 
@@ -62,115 +57,209 @@ export default function CameraPage() {
 
     ctx.drawImage(video, 0, 0);
 
-    const image = canvas.toDataURL("image/png");
-    setPhoto(image);
+    const img = canvas.toDataURL("image/png");
+    setPhoto(img);
   }
 
-  // 📤 UPLOAD (placeholder)
   async function uploadPhoto() {
     if (!photo) return;
-
-    alert("📤 Upload klar (backend kommer næste step)");
+    alert("Upload placeholder — backend kommer næste step");
   }
 
   return (
-    <main className="min-h-screen bg-black text-white flex flex-col items-center p-4">
-
+    <main style={styles.page}>
+      
       {/* HEADER */}
-      <h1 className="text-2xl font-bold mt-4">
-        📸 Event Camera
-      </h1>
-
-      <p className="text-gray-400 text-sm mt-1">
-        Tag billeder til dit event
-      </p>
-
-      {/* BUTTONS */}
-      <div className="flex flex-wrap gap-3 mt-6 justify-center">
-
-        <button
-          onClick={() => startCamera("environment")}
-          className="px-4 py-2 bg-white text-black rounded-xl font-medium"
-        >
-          Start kamera
-        </button>
-
-        <button
-          onClick={() => startCamera("user")}
-          className="px-4 py-2 bg-gray-800 rounded-xl"
-        >
-          Front
-        </button>
-
-        <button
-          onClick={takePhoto}
-          disabled={!stream}
-          className="px-4 py-2 bg-blue-600 rounded-xl disabled:opacity-40"
-        >
-          📸 Tag billede
-        </button>
-
-        <button
-          onClick={stopCamera}
-          disabled={!stream}
-          className="px-4 py-2 bg-red-600 rounded-xl disabled:opacity-40"
-        >
-          ⏹ Stop
-        </button>
+      <div style={styles.header}>
+        <h1 style={styles.title}>Event Camera</h1>
+        <p style={styles.subtitle}>Capture memories from your event</p>
       </div>
 
-      {/* CAMERA */}
-      <div className="mt-6 w-full max-w-md rounded-2xl overflow-hidden border border-gray-800 bg-black">
+      {/* CAMERA CARD */}
+      <div style={styles.card}>
         <video
           ref={videoRef}
           autoPlay
           playsInline
           muted
-          className="w-full"
+          style={styles.video}
         />
       </div>
 
-      {/* HIDDEN CANVAS */}
-      <canvas ref={canvasRef} className="hidden" />
+      {/* ACTION BAR */}
+      <div style={styles.actions}>
+        <button style={styles.primaryBtn} onClick={() => startCamera("environment")}>
+          Start
+        </button>
+
+        <button style={styles.secondaryBtn} onClick={() => startCamera("user")}>
+          Flip
+        </button>
+
+        <button style={styles.captureBtn} onClick={takePhoto} disabled={!stream}>
+          Capture
+        </button>
+
+        <button style={styles.dangerBtn} onClick={stopCamera} disabled={!stream}>
+          Stop
+        </button>
+      </div>
 
       {/* PHOTO PREVIEW */}
       {photo && (
-        <div className="mt-6 w-full max-w-md bg-gray-900 rounded-2xl p-3">
+        <div style={styles.previewCard}>
+          <img src={photo} style={styles.previewImg} />
 
-          <p className="text-sm text-gray-400 mb-2">
-            Preview
-          </p>
-
-          <img
-            src={photo}
-            className="rounded-xl w-full"
-          />
-
-          <div className="flex gap-3 mt-3">
-
-            <button
-              onClick={uploadPhoto}
-              className="flex-1 bg-green-600 py-2 rounded-xl"
-            >
+          <div style={styles.previewActions}>
+            <button style={styles.uploadBtn} onClick={uploadPhoto}>
               Upload
             </button>
 
-            <button
-              onClick={() => setPhoto(null)}
-              className="flex-1 bg-gray-700 py-2 rounded-xl"
-            >
-              Slet
+            <button style={styles.deleteBtn} onClick={() => setPhoto(null)}>
+              Delete
             </button>
           </div>
         </div>
       )}
 
       {/* ERROR */}
-      {error && (
-        <p className="text-red-500 mt-4 text-sm">
-          ❌ {error}
-        </p>
-      )}
+      {error && <p style={styles.error}>{error}</p>}
+
+      <canvas ref={canvasRef} style={{ display: "none" }} />
     </main>
   );
 }
+
+/* 🎨 VINTAGE / CUTE DESIGN SYSTEM */
+const styles: any = {
+  page: {
+    minHeight: "100vh",
+    background: "linear-gradient(180deg, #f7f1ea, #f2e6df)",
+    padding: 20,
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    fontFamily: "system-ui",
+    color: "#2b2b2b",
+  },
+
+  header: {
+    textAlign: "center",
+    marginTop: 20,
+    marginBottom: 20,
+  },
+
+  title: {
+    fontSize: 26,
+    letterSpacing: 1,
+    margin: 0,
+    fontWeight: 600,
+  },
+
+  subtitle: {
+    fontSize: 14,
+    opacity: 0.6,
+    marginTop: 6,
+  },
+
+  card: {
+    width: "100%",
+    maxWidth: 420,
+    borderRadius: 24,
+    overflow: "hidden",
+    background: "rgba(255,255,255,0.6)",
+    backdropFilter: "blur(10px)",
+    border: "1px solid rgba(0,0,0,0.05)",
+    boxShadow: "0 10px 30px rgba(0,0,0,0.08)",
+  },
+
+  video: {
+    width: "100%",
+    display: "block",
+  },
+
+  actions: {
+    display: "flex",
+    gap: 10,
+    flexWrap: "wrap",
+    justifyContent: "center",
+    marginTop: 18,
+  },
+
+  primaryBtn: {
+    padding: "10px 16px",
+    borderRadius: 999,
+    border: "none",
+    background: "#2f2f2f",
+    color: "white",
+  },
+
+  secondaryBtn: {
+    padding: "10px 16px",
+    borderRadius: 999,
+    border: "1px solid #cbb9ad",
+    background: "transparent",
+    color: "#2f2f2f",
+  },
+
+  captureBtn: {
+    padding: "10px 16px",
+    borderRadius: 999,
+    border: "none",
+    background: "#c97c5d",
+    color: "white",
+  },
+
+  dangerBtn: {
+    padding: "10px 16px",
+    borderRadius: 999,
+    border: "none",
+    background: "#b23a48",
+    color: "white",
+  },
+
+  previewCard: {
+    marginTop: 20,
+    width: "100%",
+    maxWidth: 420,
+    borderRadius: 24,
+    overflow: "hidden",
+    background: "rgba(255,255,255,0.7)",
+    border: "1px solid rgba(0,0,0,0.05)",
+  },
+
+  previewImg: {
+    width: "100%",
+    display: "block",
+  },
+
+  previewActions: {
+    display: "flex",
+    justifyContent: "space-between",
+    padding: 10,
+    gap: 10,
+  },
+
+  uploadBtn: {
+    flex: 1,
+    padding: 10,
+    borderRadius: 12,
+    background: "#4a7c59",
+    color: "white",
+    border: "none",
+  },
+
+  deleteBtn: {
+    flex: 1,
+    padding: 10,
+    borderRadius: 12,
+    background: "#e9d8c3",
+    border: "none",
+  },
+
+  error: {
+    color: "#b23a48",
+    marginTop: 10,
+    fontSize: 14,
+  },
+};

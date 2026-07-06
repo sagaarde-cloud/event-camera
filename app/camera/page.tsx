@@ -46,10 +46,21 @@ export default function CameraPage() {
     startCamera(newMode);
   }
 
-  function getFilter() {
+  function getFilterStyle() {
     if (filter === "vintage") return "sepia(0.6) contrast(1.1)";
     if (filter === "bw") return "grayscale(1)";
     return "none";
+  }
+
+  function applyCanvasFilter(ctx: CanvasRenderingContext2D) {
+    // 🔥 vigtig: canvas filter skal sættes HER (ikke CSS)
+    if (filter === "vintage") {
+      ctx.filter = "sepia(0.6) contrast(1.1)";
+    } else if (filter === "bw") {
+      ctx.filter = "grayscale(1)";
+    } else {
+      ctx.filter = "none";
+    }
   }
 
   function takePhoto() {
@@ -64,9 +75,8 @@ export default function CameraPage() {
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
 
-    const currentFilter = getFilter();
+    applyCanvasFilter(ctx);
 
-    ctx.filter = currentFilter;
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
     const image = canvas.toDataURL("image/png");
@@ -102,9 +112,8 @@ export default function CameraPage() {
         <video
           ref={videoRef}
           className="video"
-          style={{ filter: getFilter() }}
+          style={{ filter: getFilterStyle() }}
         />
-
         <canvas ref={canvasRef} className="hidden" />
       </div>
 
@@ -113,7 +122,7 @@ export default function CameraPage() {
           src={photo}
           className="preview"
           alt="preview"
-          style={{ filter: getFilter() }}
+          style={{ filter: getFilterStyle() }}
         />
       )}
 

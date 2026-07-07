@@ -71,12 +71,12 @@ export default function CameraPage() {
 
   function getVideoFilter() {
     if (filter === "bw") {
-      return "grayscale(1)";
+     return "grayscale(1) contrast(1.1)";
     }
 
     if (filter === "vintage") {
-      return "sepia(.7) contrast(1.1)";
-    }
+  return "sepia(0.45) saturate(1.15) contrast(1.05) brightness(1.05)";
+}
 
     return "none";
   }

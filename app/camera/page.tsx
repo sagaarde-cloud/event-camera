@@ -17,61 +17,69 @@ export default function CameraPage() {
   const [photo, setPhoto] = useState<string | null>(null);
   const [filter, setFilter] = useState<Filter>("normal");
 
-  function getCanvasFilter() {
-    if (filter === "vintage") {
-      return "sepia(0.7) contrast(1.15)";
+  async function startCamera(mode = facingMode) {
+    if (stream) {
+      stream.getTracks().forEach((track) => track.stop());
     }
 
-    if (filter === "bw") {
-      return "grayscale(1)";
-    }
+    const newStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: mode },
+      audio: false,
+    });
 
-    return "none";
-  }
+    setStream(newStream);
 
-  function getPreviewFilter() {
-    if (filter === "vintage") {
-      return "sepia(0.7) contrast(1.15)";
-    }
-
-    if (filter === "bw") {
-      return "grayscale(1)";
-    }
-
-    return "none";
-  }
-
-  async function startCamera(mode: "user" | "environment" = facingMode) {
-    try {
-      if (stream) {
-        stream.getTracks().forEach((track) => track.stop());
-      }
-
-      const newStream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          facingMode: mode,
-        },
-        audio: false,
-      });
-
-      setStream(newStream);
-
-      if (videoRef.current) {
-        videoRef.current.srcObject = newStream;
-        await videoRef.current.play();
-      }
-    } catch (error) {
-      console.error(error);
-      alert("Kamera kunne ikke startes");
+    if (videoRef.current) {
+      videoRef.current.srcObject = newStream;
+      await videoRef.current.play();
     }
   }
 
   function flipCamera() {
-    const newMode =
+    const next =
       facingMode === "environment" ? "user" : "environment";
 
-    setFacingMode(newMode);
-    startCamera(newMode);
+    setFacingMode(next);
+    startCamera(next);
+  }
+
+  function applyPixelFilter(
+    ctx: CanvasRenderingContext2D,
+    width: number,
+    height: number
+  ) {
+    if (filter === "normal") return;
+
+    const imageData = ctx.getImageData(
+      0,
+      0,
+      width,
+      height
+    );
+
+    const data = imageData.data;
+
+    for (let i = 0; i < data.length; i += 4) {
+      let r = data[i];
+      let g = data[i + 1];
+      let b = data[i + 2];
+
+      if (filter === "bw") {
+        const gray = (r + g + b) / 3;
+
+        data[i] = gray;
+        data[i + 1] = gray;
+        data[i + 2] = gray;
+      }
+
+      if (filter === "vintage") {
+        data[i] = r * 1.1 + 20;
+        data[i + 1] = g * 0.95 + 10;
+        data[i + 2] = b * 0.8;
+      }
+    }
+
+    ctx.putImageData(imageData, 0, 0);
   }
 
   function takePhoto() {
@@ -87,10 +95,6 @@ export default function CameraPage() {
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
 
-    // VIGTIGT:
-    // Filter skal sættes FØR drawImage
-    ctx.filter = getCanvasFilter();
-
     ctx.drawImage(
       video,
       0,
@@ -99,62 +103,62 @@ export default function CameraPage() {
       canvas.height
     );
 
-    const image = canvas.toDataURL("image/png");
+    applyPixelFilter(
+      ctx,
+      canvas.width,
+      canvas.height
+    );
 
-    setPhoto(image);
+    setPhoto(canvas.toDataURL("image/png"));
   }
 
+
   async function uploadPhoto() {
-    if (!photo) {
-      alert("No photo");
+    if (!photo) return;
+
+    const response = await fetch(photo);
+    const blob = await response.blob();
+
+    const fileName = `event-${Date.now()}.png`;
+
+    const { error } = await supabase.storage
+      .from("events")
+      .upload(fileName, blob, {
+        contentType: "image/png",
+      });
+
+    if (error) {
+      alert(error.message);
       return;
     }
 
-    try {
-      const fileName = `event-${Date.now()}.png`;
-
-      const response = await fetch(photo);
-      const blob = await response.blob();
-
-      const { error } = await supabase.storage
-        .from("events")
-        .upload(fileName, blob, {
-          contentType: "image/png",
-        });
-
-      if (error) {
-        alert(error.message);
-        return;
-      }
-
-      alert("Upload successful 🚀");
-      setPhoto(null);
-
-    } catch (error) {
-      console.error(error);
-      alert("Upload error");
-    }
+    alert("Upload successful 🚀");
   }
+
+
+  function previewFilter() {
+    if (filter === "bw") return "grayscale(1)";
+    if (filter === "vintage")
+      return "sepia(0.7) contrast(1.1)";
+
+    return "none";
+  }
+
 
   return (
     <main className="wrap">
 
-      <div className="camera">
-        <video
-          ref={videoRef}
-          className="video"
-          autoPlay
-          playsInline
-          style={{
-            filter: getPreviewFilter(),
-          }}
-        />
+      <video
+        ref={videoRef}
+        className="video"
+        autoPlay
+        playsInline
+        style={{
+          filter: previewFilter(),
+        }}
+      />
 
-        <canvas
-          ref={canvasRef}
-          hidden
-        />
-      </div>
+      <canvas ref={canvasRef} hidden />
 
 
       {photo && (
@@ -202,7 +206,6 @@ export default function CameraPage() {
 
       <style jsx>{`
         .wrap {
-          min-height:100vh;
           display:flex;
           flex-direction:column;
           align-items:center;
@@ -210,23 +213,15 @@ export default function CameraPage() {
           padding:20px;
         }
 
-        .camera {
+        .video {
           width:320px;
           height:420px;
-          overflow:hidden;
-          border-radius:20px;
-          background:black;
-        }
-
-        .video {
-          width:100%;
-          height:100%;
           object-fit:cover;
+          border-radius:20px;
         }
 
         .preview {
           width:200px;
-          border-radius:10px;
         }
 
         button {

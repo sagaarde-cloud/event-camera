@@ -17,6 +17,30 @@ export default function CameraPage() {
   const [photo, setPhoto] = useState<string | null>(null);
   const [filter, setFilter] = useState<Filter>("normal");
 
+  function getCanvasFilter() {
+    if (filter === "vintage") {
+      return "sepia(0.7) contrast(1.15)";
+    }
+
+    if (filter === "bw") {
+      return "grayscale(1)";
+    }
+
+    return "none";
+  }
+
+  function getPreviewFilter() {
+    if (filter === "vintage") {
+      return "sepia(0.7) contrast(1.15)";
+    }
+
+    if (filter === "bw") {
+      return "grayscale(1)";
+    }
+
+    return "none";
+  }
+
   async function startCamera(mode: "user" | "environment" = facingMode) {
     try {
       if (stream) {
@@ -24,7 +48,9 @@ export default function CameraPage() {
       }
 
       const newStream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: mode },
+        video: {
+          facingMode: mode,
+        },
         audio: false,
       });
 
@@ -41,7 +67,9 @@ export default function CameraPage() {
   }
 
   function flipCamera() {
-    const newMode = facingMode === "environment" ? "user" : "environment";
+    const newMode =
+      facingMode === "environment" ? "user" : "environment";
+
     setFacingMode(newMode);
     startCamera(newMode);
   }
@@ -53,20 +81,23 @@ export default function CameraPage() {
     if (!video || !canvas) return;
 
     const ctx = canvas.getContext("2d");
+
     if (!ctx) return;
 
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
 
-    if (filter === "vintage") {
-      ctx.filter = "sepia(0.6) contrast(1.1)";
-    } else if (filter === "bw") {
-      ctx.filter = "grayscale(1)";
-    } else {
-      ctx.filter = "none";
-    }
+    // VIGTIGT:
+    // Filter skal sættes FØR drawImage
+    ctx.filter = getCanvasFilter();
 
-    ctx.drawImage(video, 0, 0);
+    ctx.drawImage(
+      video,
+      0,
+      0,
+      canvas.width,
+      canvas.height
+    );
 
     const image = canvas.toDataURL("image/png");
 
@@ -92,43 +123,39 @@ export default function CameraPage() {
         });
 
       if (error) {
-        console.error(error);
         alert(error.message);
         return;
       }
 
       alert("Upload successful 🚀");
       setPhoto(null);
+
     } catch (error) {
       console.error(error);
       alert("Upload error");
     }
   }
 
-  function filterStyle() {
-    if (filter === "vintage") {
-      return "sepia(0.6) contrast(1.1)";
-    }
-
-    if (filter === "bw") {
-      return "grayscale(1)";
-    }
-
-    return "none";
-  }
-
   return (
     <main className="wrap">
+
       <div className="camera">
         <video
           ref={videoRef}
           className="video"
           autoPlay
           playsInline
-          style={{ filter: filterStyle() }}
+          style={{
+            filter: getPreviewFilter(),
+          }}
         />
-        <canvas ref={canvasRef} hidden />
+
+        <canvas
+          ref={canvasRef}
+          hidden
+        />
       </div>
+
 
       {photo && (
         <img
@@ -138,12 +165,25 @@ export default function CameraPage() {
         />
       )}
 
+
       <div>
-        <button onClick={() => startCamera()}>Start</button>
-        <button onClick={flipCamera}>Flip</button>
-        <button onClick={takePhoto}>Tag billede</button>
-        <button onClick={uploadPhoto}>Upload</button>
+        <button onClick={() => startCamera()}>
+          Start
+        </button>
+
+        <button onClick={flipCamera}>
+          Flip
+        </button>
+
+        <button onClick={takePhoto}>
+          Tag billede
+        </button>
+
+        <button onClick={uploadPhoto}>
+          Upload
+        </button>
       </div>
+
 
       <div>
         <button onClick={() => setFilter("normal")}>
@@ -159,40 +199,42 @@ export default function CameraPage() {
         </button>
       </div>
 
+
       <style jsx>{`
         .wrap {
-          min-height: 100vh;
-          padding: 20px;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          gap: 15px;
+          min-height:100vh;
+          display:flex;
+          flex-direction:column;
+          align-items:center;
+          gap:15px;
+          padding:20px;
         }
 
         .camera {
-          width: 320px;
-          height: 420px;
-          overflow: hidden;
-          border-radius: 20px;
-          background: black;
+          width:320px;
+          height:420px;
+          overflow:hidden;
+          border-radius:20px;
+          background:black;
         }
 
         .video {
-          width: 100%;
-          height: 100%;
-          object-fit: cover;
+          width:100%;
+          height:100%;
+          object-fit:cover;
         }
 
         .preview {
-          width: 200px;
-          border-radius: 10px;
+          width:200px;
+          border-radius:10px;
         }
 
         button {
-          margin: 5px;
-          padding: 10px;
+          margin:5px;
+          padding:10px;
         }
       `}</style>
+
     </main>
   );
 }

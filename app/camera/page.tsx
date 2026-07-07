@@ -100,7 +100,7 @@ export default function CameraPage() {
 
       if (error) {
         console.error("Upload error:", error);
-        alert("Upload failed");
+        alert(error.message);
         return;
       }
 

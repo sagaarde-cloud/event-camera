@@ -20,7 +20,7 @@ export default function CameraPage() {
   async function startCamera(mode: "user" | "environment" = facingMode) {
     try {
       if (stream) {
-        stream.getTracks().forEach((t) => t.stop());
+        stream.getTracks().forEach((track) => track.stop());
       }
 
       const newStream = await navigator.mediaDevices.getUserMedia({
@@ -34,8 +34,8 @@ export default function CameraPage() {
         videoRef.current.srcObject = newStream;
         await videoRef.current.play();
       }
-    } catch (err) {
-      console.error(err);
+    } catch (error) {
+      console.error(error);
       alert("Kamera kunne ikke startes");
     }
   }
@@ -46,22 +46,11 @@ export default function CameraPage() {
     startCamera(newMode);
   }
 
-  function getFilter() {
-    if (filter === "vintage") return "sepia(0.6) contrast(1.1)";
-    if (filter === "bw") return "grayscale(1)";
-    return "none";
-  }
-
   function takePhoto() {
     const video = videoRef.current;
     const canvas = canvasRef.current;
 
     if (!video || !canvas) return;
-
-    if (video.videoWidth === 0 || video.videoHeight === 0) {
-      alert("Camera not ready");
-      return;
-    }
 
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
@@ -69,97 +58,122 @@ export default function CameraPage() {
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
 
-    if (filter === "vintage") ctx.filter = "sepia(0.6) contrast(1.1)";
-    else if (filter === "bw") ctx.filter = "grayscale(1)";
-    else ctx.filter = "none";
+    if (filter === "vintage") {
+      ctx.filter = "sepia(0.6) contrast(1.1)";
+    } else if (filter === "bw") {
+      ctx.filter = "grayscale(1)";
+    } else {
+      ctx.filter = "none";
+    }
 
-    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    ctx.drawImage(video, 0, 0);
 
     const image = canvas.toDataURL("image/png");
+
     setPhoto(image);
   }
 
   async function uploadPhoto() {
     if (!photo) {
-      alert("No photo to upload");
+      alert("No photo");
       return;
     }
 
     try {
       const fileName = `event-${Date.now()}.png`;
 
-      const res = await fetch(photo);
-      const blob = await res.blob();
+      const response = await fetch(photo);
+      const blob = await response.blob();
 
       const { error } = await supabase.storage
         .from("events")
         .upload(fileName, blob, {
           contentType: "image/png",
-          upsert: false,
         });
 
       if (error) {
-        console.error("Upload error:", error);
+        console.error(error);
         alert(error.message);
         return;
       }
 
-      alert("SANDRA TEST 123");
+      alert("Upload successful 🚀");
       setPhoto(null);
-    } catch (err) {
-      console.error(err);
-      alert("Upload crashed");
+    } catch (error) {
+      console.error(error);
+      alert("Upload error");
     }
   }
 
+  function filterStyle() {
+    if (filter === "vintage") {
+      return "sepia(0.6) contrast(1.1)";
+    }
+
+    if (filter === "bw") {
+      return "grayscale(1)";
+    }
+
+    return "none";
+  }
+
   return (
-    <div className="wrap">
+    <main className="wrap">
       <div className="camera">
         <video
           ref={videoRef}
           className="video"
-          style={{ filter: getFilter() }}
+          autoPlay
+          playsInline
+          style={{ filter: filterStyle() }}
         />
-        <canvas ref={canvasRef} className="hidden" />
+        <canvas ref={canvasRef} hidden />
       </div>
 
       {photo && (
-        <div className="previewWrap" style={{ filter: getFilter() }}>
-          <img src={photo} className="preview" />
-        </div>
+        <img
+          src={photo}
+          className="preview"
+          alt="preview"
+        />
       )}
 
-      <div className="buttons">
+      <div>
         <button onClick={() => startCamera()}>Start</button>
         <button onClick={flipCamera}>Flip</button>
         <button onClick={takePhoto}>Tag billede</button>
         <button onClick={uploadPhoto}>Upload</button>
       </div>
 
-      <div className="filters">
-        <button onClick={() => setFilter("normal")}>Normal</button>
-        <button onClick={() => setFilter("vintage")}>Vintage</button>
-        <button onClick={() => setFilter("bw")}>B/W</button>
+      <div>
+        <button onClick={() => setFilter("normal")}>
+          Normal
+        </button>
+
+        <button onClick={() => setFilter("vintage")}>
+          Vintage
+        </button>
+
+        <button onClick={() => setFilter("bw")}>
+          Sort/Hvid
+        </button>
       </div>
 
       <style jsx>{`
         .wrap {
+          min-height: 100vh;
+          padding: 20px;
           display: flex;
           flex-direction: column;
           align-items: center;
-          gap: 12px;
-          padding: 20px;
-          background: #f7f3ee;
-          min-height: 100vh;
-          font-family: sans-serif;
+          gap: 15px;
         }
 
         .camera {
           width: 320px;
           height: 420px;
-          border-radius: 20px;
           overflow: hidden;
-          border: 8px solid #d8cfc4;
+          border-radius: 20px;
           background: black;
         }
 
@@ -169,40 +183,16 @@ export default function CameraPage() {
           object-fit: cover;
         }
 
-        .previewWrap {
-          width: 160px;
-          border-radius: 12px;
-          overflow: hidden;
-          border: 3px solid #d8cfc4;
-        }
-
         .preview {
-          width: 100%;
-          display: block;
+          width: 200px;
+          border-radius: 10px;
         }
 
         button {
-          margin: 4px;
-          padding: 10px 14px;
-          border-radius: 10px;
-          border: none;
-          background: #cbbba0;
-          color: white;
-          cursor: pointer;
-        }
-
-        button:hover {
-          background: #b8a48b;
-        }
-
-        .filters {
-          margin-top: 10px;
-        }
-
-        .hidden {
-          display: none;
+          margin: 5px;
+          padding: 10px;
         }
       `}</style>
-    </div>
+    </main>
   );
 }

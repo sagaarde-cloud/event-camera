@@ -104,7 +104,7 @@ export default function CameraPage() {
         return;
       }
 
-      alert("Upload successful 🚀");
+      alert("SANDRA TEST 123");
       setPhoto(null);
     } catch (err) {
       console.error(err);

@@ -10,49 +10,45 @@ export default function CameraPage() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
   const [stream, setStream] = useState<MediaStream | null>(null);
-  const [facingMode, setFacingMode] = useState<"user" | "environment">(
-    "environment"
-  );
+  const [facingMode, setFacingMode] =
+    useState<"user" | "environment">("environment");
 
   const [photo, setPhoto] = useState<string | null>(null);
   const [filter, setFilter] = useState<Filter>("normal");
   const [uploading, setUploading] = useState(false);
 
   async function startCamera(mode = facingMode) {
-    try {
-      if (stream) {
-        stream.getTracks().forEach((track) => track.stop());
-      }
+    if (stream) {
+      stream.getTracks().forEach((track) => track.stop());
+    }
 
-      const newStream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: mode },
-        audio: false,
-      });
+    const newStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: mode },
+      audio: false,
+    });
 
-      setStream(newStream);
+    setStream(newStream);
 
-      if (videoRef.current) {
-        videoRef.current.srcObject = newStream;
-        await videoRef.current.play();
-      }
-    } catch (error) {
-      console.error(error);
-      alert("Kamera kunne ikke startes");
+    if (videoRef.current) {
+      videoRef.current.srcObject = newStream;
+      await videoRef.current.play();
     }
   }
 
   function flipCamera() {
     const next =
-      facingMode === "environment" ? "user" : "environment";
+      facingMode === "environment"
+        ? "user"
+        : "environment";
 
     setFacingMode(next);
     startCamera(next);
   }
 
-  function getVideoFilter() {
+  function videoFilter() {
     if (filter === "bw") return "grayscale(1)";
     if (filter === "vintage")
-      return "sepia(0.7) contrast(1.1)";
+      return "sepia(.7) contrast(1.1)";
 
     return "none";
   }
@@ -64,14 +60,14 @@ export default function CameraPage() {
   ) {
     if (filter === "normal") return;
 
-    const imageData = ctx.getImageData(
+    const image = ctx.getImageData(
       0,
       0,
       width,
       height
     );
 
-    const data = imageData.data;
+    const data = image.data;
 
     for (let i = 0; i < data.length; i += 4) {
       let r = data[i];
@@ -88,12 +84,12 @@ export default function CameraPage() {
 
       if (filter === "vintage") {
         data[i] = r * 1.1 + 20;
-        data[i + 1] = g * 0.95 + 10;
-        data[i + 2] = b * 0.8;
+        data[i + 1] = g * .95 + 10;
+        data[i + 2] = b * .8;
       }
     }
 
-    ctx.putImageData(imageData, 0, 0);
+    ctx.putImageData(image, 0, 0);
   }
 
   function takePhoto() {
@@ -126,47 +122,47 @@ export default function CameraPage() {
     setPhoto(canvas.toDataURL("image/png"));
   }
 
+
   async function uploadPhoto() {
     if (!photo) return;
 
     setUploading(true);
 
-    try {
-      const fileName = `event-${Date.now()}.png`;
+    const response = await fetch(photo);
+    const blob = await response.blob();
 
-      const response = await fetch(photo);
-      const blob = await response.blob();
+    const fileName =
+      `event-${Date.now()}.png`;
 
-      const { error } = await supabase.storage
+    const { error } =
+      await supabase.storage
         .from("events")
         .upload(fileName, blob, {
           contentType: "image/png",
         });
 
-      if (error) {
-        alert(error.message);
-        return;
-      }
+    setUploading(false);
 
-      alert("Billede gemt ✓");
-      setPhoto(null);
-
-    } finally {
-      setUploading(false);
+    if (error) {
+      alert(error.message);
+      return;
     }
+
+    alert("Photo saved");
+    setPhoto(null);
   }
+
 
   return (
     <main className="page">
 
-      <h1>Vintage Event Camera</h1>
+      <div className="brand">
+        EVENT CAMERA
+        <span>MEMORIES COLLECTION</span>
+      </div>
 
-      <p className="subtitle">
-        Capture your memories ✨
-      </p>
 
-
-      <div className="cameraFrame">
+      <section className="cameraShell">
 
         <video
           ref={videoRef}
@@ -174,7 +170,7 @@ export default function CameraPage() {
           autoPlay
           playsInline
           style={{
-            filter: getVideoFilter(),
+            filter: videoFilter(),
           }}
         />
 
@@ -183,67 +179,68 @@ export default function CameraPage() {
           hidden
         />
 
-      </div>
-
-
-      {photo && (
-        <div className="photoCard">
-          <img
-            src={photo}
-            alt="preview"
-          />
-        </div>
-      )}
+      </section>
 
 
       <div className="filters">
 
-        <button
-          className={filter === "normal" ? "active" : ""}
-          onClick={() => setFilter("normal")}
-        >
-          Normal
-        </button>
+        {[
+          ["normal", "ORIGINAL"],
+          ["vintage", "VINTAGE"],
+          ["bw", "NOIR"],
+        ].map(([value, label]) => (
 
-        <button
-          className={filter === "vintage" ? "active" : ""}
-          onClick={() => setFilter("vintage")}
-        >
-          Vintage
-        </button>
+          <button
+            key={value}
+            className={
+              filter === value
+                ? "selected"
+                : ""
+            }
+            onClick={() =>
+              setFilter(value as Filter)
+            }
+          >
+            {label}
+          </button>
 
-        <button
-          className={filter === "bw" ? "active" : ""}
-          onClick={() => setFilter("bw")}
-        >
-          Noir
-        </button>
+        ))}
 
       </div>
 
 
-      <div className="actions">
+      {photo && (
+        <div className="preview">
+          <img src={photo} />
+        </div>
+      )}
+
+
+      <div className="controls">
 
         <button onClick={() => startCamera()}>
-          Start
+          START
         </button>
 
         <button onClick={flipCamera}>
-          Flip
+          FLIP
         </button>
 
+
         <button
-          className="capture"
+          className="shutter"
           onClick={takePhoto}
         >
-          📸
         </button>
+
 
         <button
           onClick={uploadPhoto}
           disabled={uploading}
         >
-          {uploading ? "Gemmer..." : "Upload"}
+          {uploading
+            ? "SAVING"
+            : "SAVE"}
         </button>
 
       </div>
@@ -253,76 +250,93 @@ export default function CameraPage() {
 
         .page {
           min-height:100vh;
-          background:#f4eadb;
-          padding:25px;
+          background:
+          radial-gradient(
+            circle at top,
+            #3d3028,
+            #120f0d
+          );
+
+          color:#f3e5cf;
           display:flex;
           flex-direction:column;
           align-items:center;
-          gap:15px;
-          font-family:Georgia, serif;
+          padding:28px;
+          gap:22px;
+          font-family:
+          Arial, sans-serif;
         }
 
-        h1 {
-          color:#5b4030;
-          margin:0;
+
+        .brand {
+          letter-spacing:4px;
+          font-size:18px;
+          text-align:center;
         }
 
-        .subtitle {
-          color:#806451;
+
+        .brand span {
+          display:block;
+          font-size:10px;
+          margin-top:8px;
+          color:#c5a878;
+          letter-spacing:3px;
         }
 
-        .cameraFrame {
-          width:320px;
-          height:420px;
-          background:#fffaf3;
+
+        .cameraShell {
+          width:330px;
+          height:430px;
           padding:12px;
-          border-radius:28px;
-          box-shadow:0 15px 35px rgba(0,0,0,0.18);
+          background:#1f1915;
+          border:1px solid #8d6b43;
+          border-radius:24px;
+          box-shadow:
+          0 25px 60px black;
         }
+
 
         .video {
           width:100%;
           height:100%;
           object-fit:cover;
-          border-radius:20px;
+          border-radius:16px;
         }
 
-        .photoCard {
-          background:white;
-          padding:12px;
-          border-radius:8px;
-          box-shadow:0 10px 25px rgba(0,0,0,0.15);
-        }
 
-        .photoCard img {
-          width:180px;
-          display:block;
-        }
-
-        button {
-          background:#8b6b4f;
-          color:white;
-          border:none;
+        .filters button,
+        .controls button {
+          background:#241c17;
+          color:#e8d1aa;
+          border:1px solid #80603b;
           padding:12px 18px;
-          border-radius:20px;
           margin:5px;
-          font-size:15px;
+          border-radius:30px;
+          letter-spacing:1px;
         }
 
-        button.active {
-          background:#4f3525;
+
+        .selected {
+          background:#a67c48 !important;
+          color:white !important;
         }
 
-        .capture {
-          width:65px;
-          height:65px;
+
+        .shutter {
+          width:70px;
+          height:70px;
           border-radius:50%;
-          font-size:28px;
+          background:#eee0c8 !important;
+          border:6px solid #8d6b43 !important;
         }
 
-        button:disabled {
-          opacity:.5;
+
+        .preview img {
+          width:190px;
+          border-radius:12px;
+          border:8px solid #eee0c8;
         }
+
 
       `}</style>
 
